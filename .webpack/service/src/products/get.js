@@ -86,59 +86,859 @@
 /************************************************************************/
 /******/ ({
 
-/***/ "../../../src/products/get.js":
+/***/ "../../../src/libs/handler.js":
 /*!*******************************************************************!*\
-  !*** /Users/josoroma/Sites/sls/sls-challenge/src/products/get.js ***!
+  !*** /Users/josoroma/Sites/sls/sls-challenge/src/libs/handler.js ***!
   \*******************************************************************/
-/*! exports provided: handler */
+/*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "handler", function() { return handler; });
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "../../source-map-support/register.js");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var lambda_log__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lambda-log */ "../../lambda-log/index.js");
+/* harmony import */ var lambda_log__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lambda_log__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _response__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./response */ "../../../src/libs/response.js");
+/* harmony import */ var _headers__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./headers */ "../../../src/libs/headers.js");
+
+
+/**
+ * https://serverless-stack.com/chapters/setup-error-logging-in-serverless.html
+ * https://github.com/KyleRoss/node-lambda-log
+ */
+
+
+ // Enable or disable debug messages.
+
+lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.debug = true; // Add timestamp to each log.
+
+const timestamp = new Date().toISOString();
+
+lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.dynamicMeta = message => ({
+  timestamp
+});
+
+const handler = lambda => async (event, context) => {
+  let body;
+  let statusCode; // Add additional stage tag to all logs.
+
+  const stage = event.requestContext.stage;
+  lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.tags.push(stage); // Set some optional metadata to be included in all logs.
+
+  lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.meta.event = event;
+  lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.meta.context = context;
+
+  try {
+    // Debug custom message plus the optional metadata.
+    // log.debug("--- DEBUG ---");
+    // Run the Lambda and set part of the HTTP response.
+    body = await lambda(event, context);
+    statusCode = 200;
+  } catch (e) {
+    // Log error plus the optional metadata.
+    lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.error(e); // Set part of the HTTP response.
+
+    body = {
+      error: e.message
+    };
+    statusCode = 500;
+  }
+
+  const bodyResponse = Object(_response__WEBPACK_IMPORTED_MODULE_2__["default"])({
+    body,
+    context,
+    debug: lambda_log__WEBPACK_IMPORTED_MODULE_1___default.a.options.debug,
+    event,
+    stage,
+    timestamp
+  }); // Return HTTP response.
+
+  return {
+    statusCode,
+    body: bodyResponse,
+    headers: _headers__WEBPACK_IMPORTED_MODULE_3__["default"]
+  };
+};
+
+/* harmony default export */ __webpack_exports__["default"] = (handler);
+
+/***/ }),
+
+/***/ "../../../src/libs/headers.js":
+/*!*******************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/src/libs/headers.js ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "../../source-map-support/register.js");
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
 
-const handler = async (event, context) => {
-  const {
-    body,
-    headers,
-    httpMethod,
-    path,
-    pathParameters,
-    queryStringParameters,
-    resource
-  } = event;
-  const {
-    functionName,
-    invokedFunctionArn,
-    logGroupName,
-    logStreamName
-  } = context;
-  return {
-    statusCode: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true
-    },
-    body: JSON.stringify({
-      message: "Serverless function executed successfully!",
-      // Event
-      body,
-      headers,
-      httpMethod,
-      path,
-      pathParameters,
-      queryStringParameters,
-      resource,
-      // Context
-      functionName,
-      invokedFunctionArn,
-      logGroupName,
-      logStreamName
-    }, null, 2)
-  };
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Credentials": true
 };
+/* harmony default export */ __webpack_exports__["default"] = (headers);
+
+/***/ }),
+
+/***/ "../../../src/libs/response.js":
+/*!********************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/src/libs/response.js ***!
+  \********************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "../../source-map-support/register.js");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+
+
+const response = ({
+  body,
+  context,
+  debug,
+  event,
+  stage,
+  timestamp
+}) => {
+  const response = debug && stage === "dev" ? { ...body,
+    debug: {
+      context,
+      event: {
+        body: event.body,
+        httpMethod: event.httpMethod,
+        path: event.path,
+        pathParameters: event.pathParameters,
+        queryStringParameters: event.queryStringParameters,
+        requestContext: {
+          accountId: event.requestContext.accountId,
+          stage
+        }
+      },
+      timestamp
+    }
+  } : body;
+  return JSON.stringify(response);
+};
+
+/* harmony default export */ __webpack_exports__["default"] = (response);
+
+/***/ }),
+
+/***/ "../../../src/products/get.js":
+/*!*******************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/src/products/get.js ***!
+  \*******************************************************************/
+/*! exports provided: main */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "main", function() { return main; });
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "../../source-map-support/register.js");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _libs_handler__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../libs/handler */ "../../../src/libs/handler.js");
+
+
+const main = Object(_libs_handler__WEBPACK_IMPORTED_MODULE_1__["default"])(async (event, context) => {
+  return {
+    data: "Serverless function executed successfully!"
+  };
+});
+
+/***/ }),
+
+/***/ "../../buffer-from/index.js":
+/*!*********************************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/node_modules/buffer-from/index.js ***!
+  \*********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+var toString = Object.prototype.toString
+
+var isModern = (
+  typeof Buffer.alloc === 'function' &&
+  typeof Buffer.allocUnsafe === 'function' &&
+  typeof Buffer.from === 'function'
+)
+
+function isArrayBuffer (input) {
+  return toString.call(input).slice(8, -1) === 'ArrayBuffer'
+}
+
+function fromArrayBuffer (obj, byteOffset, length) {
+  byteOffset >>>= 0
+
+  var maxLength = obj.byteLength - byteOffset
+
+  if (maxLength < 0) {
+    throw new RangeError("'offset' is out of bounds")
+  }
+
+  if (length === undefined) {
+    length = maxLength
+  } else {
+    length >>>= 0
+
+    if (length > maxLength) {
+      throw new RangeError("'length' is out of bounds")
+    }
+  }
+
+  return isModern
+    ? Buffer.from(obj.slice(byteOffset, byteOffset + length))
+    : new Buffer(new Uint8Array(obj.slice(byteOffset, byteOffset + length)))
+}
+
+function fromString (string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8'
+  }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('"encoding" must be a valid string encoding')
+  }
+
+  return isModern
+    ? Buffer.from(string, encoding)
+    : new Buffer(string, encoding)
+}
+
+function bufferFrom (value, encodingOrOffset, length) {
+  if (typeof value === 'number') {
+    throw new TypeError('"value" argument must not be a number')
+  }
+
+  if (isArrayBuffer(value)) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'string') {
+    return fromString(value, encodingOrOffset)
+  }
+
+  return isModern
+    ? Buffer.from(value)
+    : new Buffer(value)
+}
+
+module.exports = bufferFrom
+
+
+/***/ }),
+
+/***/ "../../fast-safe-stringify/index.js":
+/*!*****************************************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/node_modules/fast-safe-stringify/index.js ***!
+  \*****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = stringify
+stringify.default = stringify
+stringify.stable = deterministicStringify
+stringify.stableStringify = deterministicStringify
+
+var arr = []
+var replacerStack = []
+
+// Regular stringify
+function stringify (obj, replacer, spacer) {
+  decirc(obj, '', [], undefined)
+  var res
+  if (replacerStack.length === 0) {
+    res = JSON.stringify(obj, replacer, spacer)
+  } else {
+    res = JSON.stringify(obj, replaceGetterValues(replacer), spacer)
+  }
+  while (arr.length !== 0) {
+    var part = arr.pop()
+    if (part.length === 4) {
+      Object.defineProperty(part[0], part[1], part[3])
+    } else {
+      part[0][part[1]] = part[2]
+    }
+  }
+  return res
+}
+function decirc (val, k, stack, parent) {
+  var i
+  if (typeof val === 'object' && val !== null) {
+    for (i = 0; i < stack.length; i++) {
+      if (stack[i] === val) {
+        var propertyDescriptor = Object.getOwnPropertyDescriptor(parent, k)
+        if (propertyDescriptor.get !== undefined) {
+          if (propertyDescriptor.configurable) {
+            Object.defineProperty(parent, k, { value: '[Circular]' })
+            arr.push([parent, k, val, propertyDescriptor])
+          } else {
+            replacerStack.push([val, k])
+          }
+        } else {
+          parent[k] = '[Circular]'
+          arr.push([parent, k, val])
+        }
+        return
+      }
+    }
+    stack.push(val)
+    // Optimize for Arrays. Big arrays could kill the performance otherwise!
+    if (Array.isArray(val)) {
+      for (i = 0; i < val.length; i++) {
+        decirc(val[i], i, stack, val)
+      }
+    } else {
+      var keys = Object.keys(val)
+      for (i = 0; i < keys.length; i++) {
+        var key = keys[i]
+        decirc(val[key], key, stack, val)
+      }
+    }
+    stack.pop()
+  }
+}
+
+// Stable-stringify
+function compareFunction (a, b) {
+  if (a < b) {
+    return -1
+  }
+  if (a > b) {
+    return 1
+  }
+  return 0
+}
+
+function deterministicStringify (obj, replacer, spacer) {
+  var tmp = deterministicDecirc(obj, '', [], undefined) || obj
+  var res
+  if (replacerStack.length === 0) {
+    res = JSON.stringify(tmp, replacer, spacer)
+  } else {
+    res = JSON.stringify(tmp, replaceGetterValues(replacer), spacer)
+  }
+  while (arr.length !== 0) {
+    var part = arr.pop()
+    if (part.length === 4) {
+      Object.defineProperty(part[0], part[1], part[3])
+    } else {
+      part[0][part[1]] = part[2]
+    }
+  }
+  return res
+}
+
+function deterministicDecirc (val, k, stack, parent) {
+  var i
+  if (typeof val === 'object' && val !== null) {
+    for (i = 0; i < stack.length; i++) {
+      if (stack[i] === val) {
+        var propertyDescriptor = Object.getOwnPropertyDescriptor(parent, k)
+        if (propertyDescriptor.get !== undefined) {
+          if (propertyDescriptor.configurable) {
+            Object.defineProperty(parent, k, { value: '[Circular]' })
+            arr.push([parent, k, val, propertyDescriptor])
+          } else {
+            replacerStack.push([val, k])
+          }
+        } else {
+          parent[k] = '[Circular]'
+          arr.push([parent, k, val])
+        }
+        return
+      }
+    }
+    if (typeof val.toJSON === 'function') {
+      return
+    }
+    stack.push(val)
+    // Optimize for Arrays. Big arrays could kill the performance otherwise!
+    if (Array.isArray(val)) {
+      for (i = 0; i < val.length; i++) {
+        deterministicDecirc(val[i], i, stack, val)
+      }
+    } else {
+      // Create a temporary object in the required way
+      var tmp = {}
+      var keys = Object.keys(val).sort(compareFunction)
+      for (i = 0; i < keys.length; i++) {
+        var key = keys[i]
+        deterministicDecirc(val[key], key, stack, val)
+        tmp[key] = val[key]
+      }
+      if (parent !== undefined) {
+        arr.push([parent, k, val])
+        parent[k] = tmp
+      } else {
+        return tmp
+      }
+    }
+    stack.pop()
+  }
+}
+
+// wraps replacer function to handle values we couldn't replace
+// and mark them as [Circular]
+function replaceGetterValues (replacer) {
+  replacer = replacer !== undefined ? replacer : function (k, v) { return v }
+  return function (key, val) {
+    if (replacerStack.length > 0) {
+      for (var i = 0; i < replacerStack.length; i++) {
+        var part = replacerStack[i]
+        if (part[1] === key && part[0] === val) {
+          val = '[Circular]'
+          replacerStack.splice(i, 1)
+          break
+        }
+      }
+    }
+    return replacer.call(this, key, val)
+  }
+}
+
+
+/***/ }),
+
+/***/ "../../lambda-log/index.js":
+/*!********************************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/node_modules/lambda-log/index.js ***!
+  \********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @module lambda-log
+ */
+
+const LambdaLog = __webpack_require__(/*! ./lib/LambdaLog */ "../../lambda-log/lib/LambdaLog.js");
+/**
+ * Instance of the [LambdaLog](#lambdalog) class which is exported when calling `require('lambda-log')`. 
+ * For more advanced usage, you can create a new instance of the LambdaLog class via `new log.LambdaLog()`.
+ * @type LambdaLog
+ * @kind LambdaLog Instance
+ * @alias module:lambda-log
+ * 
+ * @example 
+ * const log = require('lambda-log');
+ * 
+ * // Advanced usage, create new instance of LambdaLog:
+ * const LambdaLog = require('lambda-log').LambdaLog;
+ * const log = new LambdaLog();
+ */
+const log = new LambdaLog();
+
+module.exports = log;
+
+
+/***/ }),
+
+/***/ "../../lambda-log/lib/LambdaLog.js":
+/*!****************************************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/node_modules/lambda-log/lib/LambdaLog.js ***!
+  \****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+const EventEmitter = __webpack_require__(/*! events */ "events");
+const LogMessage = __webpack_require__(/*! ./LogMessage */ "../../lambda-log/lib/LogMessage.js");
+
+/**
+ * @external EventEmitter
+ * @see https://nodejs.org/api/events.html#events_class_eventemitter
+ */
+
+/**
+ * @extends {external:EventEmitter}
+ * @typicalname log
+ */
+class LambdaLog extends EventEmitter {
+    /**
+     * Constructor for the LambdaLog class. Provided to be utilized in more advanced cases to allow overriding and configuration. By default, this module will export an instance of this class, but you may access the class and create your own instance via `log.LambdaLog`.
+     * @constructor
+     * @param {Object} [options={}] Options object. See [<code>log.options</code>](#logoptions) for available options.
+     * @param {Object} [levels={}]  Allows adding and customizing log levels. See [Custom Log Levels](#custom-log-levels).
+     */
+    constructor(options = {}, levels = {}) {
+        super();
+        /**
+         * Access to the uninstantiated LambdaLog class. This allows more advanced functionality and customization.
+         * @type {LambdaLog}
+         * @example 
+         * const LambdaLog = require('lambda-log').LambdaLog;
+         * const log = new LambdaLog();
+         */
+        this.LambdaLog = LambdaLog;
+        
+        /**
+         * Access to the uninstantiated LogMessage class. You can override this property to use a custom logging class that inherits the same methods.
+         * @type {LogMessage}
+         * @since 2.2.0
+         * @example 
+         * const log = require('lambda-log');
+         * const MyCustomLogMessageClass = require('./myCustomLogMessageClass.js');
+         * 
+         * log.LogMessage = MyCustomLogMessageClass;
+         */
+        this.LogMessage = LogMessage;
+        
+        /**
+         * Configuration object for LambdaLog. Most options can be changed at any time via `log.options.OPTION = VALUE;` unless otherwise noted.
+         * @property {Object} [meta={}] Global metadata to be included in all logs.
+         * @property {String[]} [tags=[]] Global tags to be included in all logs.
+         * @property {Function} [dynamicMeta=null] Function that runs for each log that returns additional metadata. See [Dynamic Metadata](#dynamic-metadata).
+         * @property {Boolean} [debug=false] Enables `log.debug()`.
+         * @property {Boolean} [dev=false] Enable development mode which pretty-prints JSON to the console.
+         * @property {Boolean} [silent=false] Disables logging to `console` but messages and events are still generated.
+         * @property {Function} [replacer=null] Replacer function for `JSON.stringify()` to allow handling of sensitive data before logs are written. See [JSON.stringify](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter).
+         * @property {Object} [logHandler=console] A console-like object containing all standard console functions. Allows logs to be written to any custom location. See [Log Handler](#loghandler).
+         */
+        this.options = Object.assign({
+            meta: {},
+            tags: [],
+            dynamicMeta: null,
+            debug: false,
+            dev: false,
+            silent: ![undefined, null, '0', 'no', 'false'].includes(process.env.LAMBDALOG_SILENT),
+            replacer: null,
+            logHandler: console
+        }, options);
+        
+        /**
+         * Global configuration for log levels
+         * @type {Object}
+         * @private
+         */
+        this._logLevels = Object.assign({
+            info: 'info',
+            warn: 'warn',
+            error: 'error',
+            debug: function() {
+                if(this.options.debug) return 'debug';
+                return false;
+            }
+        }, levels || {});
+        
+        this._levels = Object.keys(this._logLevels);
+        
+        /**
+         * Console-like log handler to use for logging messages
+         * @type {Object}
+         * @private 
+         */
+        this.console = this.options.logHandler;
+
+        this._levels.forEach((lvl) => {
+            /**
+             * Shortcut methods for `log.log()`. By default, the following methods are available: `log.info()`, `log.warn()`, `log.error()` and `log.debug()`. 
+             * Additional methods will be added for any [custom log levels](#custom-log-levels) provided.<br><br>The provided msg can be any type, although a string 
+             * or `Error` is recommended. If `Error` is provided the stack trace is added as metadata to the log as `stack`.
+             * @alias LambdaLog#&lt;info|warn|error|debug|*&gt;
+             * @param {*}      msg  Message to log. Can be any type, but string or `Error` reccommended.
+             * @param {Object} [meta={}] Optional meta data to attach to the log.
+             * @param {Array}  [tags=[]] Additional tags to append to this log.
+             * @return {LogMessage}  The LogMessage instance for the log.
+             * 
+             * @example
+             * const log = require('lambda-log');
+             * 
+             * log.info('Test info log');
+             * log.debug('Test debug log');
+             * log.warn('Test warn log');
+             * log.error('Test error log');
+             */
+            this[lvl] = (msg, meta = {}, tags = []) => {
+                return this.log(lvl, msg, meta, tags);
+            };
+        });
+    }
+
+    /**
+     * Generates JSON log message based on the provided parameters and the global configuration. Once the JSON message is created, it is properly logged to the `console` 
+     * and emitted through an event. If an `Error` or `Error`-like object is provided for `msg`, it will parse out the message and include the stacktrace in the metadata.
+     * @throws {Error} If improper log level is provided.
+     * @param  {String} level Log level (`info`, `debug`, `warn`, `error` or a [custom log level](#custom-log-levels))
+     * @param  {*}      msg   Message to log. Can be any type, but string or `Error` reccommended.
+     * @param  {Object} [meta={}]  Optional meta data to attach to the log.
+     * @param  {Array}  [tags=[]]  Additional tags to append to this log.
+     * @return {LogMessage|Boolean}  Returns instance of LogMessage or `false` if `level = "debug"` and `options.debug = false`. May also return `false` when a [custom log level](#custom-log-levels) handler function prevents the log from being logged.
+     * 
+     * @example 
+     * log.log('error', 'Something failed!');
+     * // same as:
+     * log.error('Something failed!');
+     */
+    log(level, msg, meta = {}, tags = []) {
+        if(this._levels.indexOf(level) === -1) {
+            throw new Error(`"${level}" is not a valid log level`);
+        }
+        
+        let message = new this.LogMessage({
+            level,
+            msg,
+            meta,
+            tags
+        }, this.options);
+        
+        let method = this._logLevels[level];
+        
+        if(typeof method === 'function') {
+            method = method.call(this, message);
+        }
+        
+        if(!method) return false;
+        
+        if(!this.options.silent) {
+            this.console[method](message.toJSON(this.options.dev));
+        }
+
+        /**
+         * The log event is emitted (using EventEmitter) for every log generated. This allows for custom integrations, such as logging to a thrid-party service. 
+         * This event is emitted with the [LogMessage](#logmessage) instance for the log. You may control events using all the methods of EventEmitter.
+         * @event LambdaLog#log
+         * @type {LogMessage}
+         * 
+         * @example 
+         * log.on('log', message => {
+         *     // an example would be sending the log message to another service
+         *     someLogService(message.toJSON());
+         * });
+         */
+        this.emit('log', message);
+        return message;
+    }
+
+    /**
+     * Generates a log message if `test` is a falsy value. If `test` is truthy, the log message is skipped and returns `false`. Allows creating log messages without the need to 
+     * wrap them in an if statement. The log level will be `error`.
+     * @since  1.4.0
+     * @param  {*}              test      A value which is tested for a falsy value.
+     * @param  {*}              msg       Message to log if `test` is falsy. Can be any type, but string or `Error` reccommended.
+     * @param  {Object}         [meta={}] Optional meta data to attach to the log.
+     * @param  {Array}          [tags=[]] Additional tags to append to this log.
+     * @return {LogMessage|Boolean}       The LogMessage instance for the log or `false` if test passed.
+     * 
+     * @example 
+     * let results = null;
+     * // This log will be displayed since `results` is a falsy value.
+     * log.assert(results, 'No results provided!');
+     * //=> { msg: "No results provided!" ... }
+     * 
+     * // But if they are truthy, the log is ignored:
+     * results = [1, 2, 3];
+     * log.assert(results, 'No results provided!');
+     * //=> false
+     */
+    assert(test, msg, meta = {}, tags = []) {
+        if(test) return false;
+        return this.log('error', msg, meta, tags);
+    }
+    
+    /**
+     * Generates a log message with the result or error provided by a promise. Useful for debugging and testing.
+     * @since 2.3.0
+     * @param {Promise} promise A promise or promise-like object to retrieve a value from.
+     * @param  {Object} [meta={}] Optional meta data to attach to the log.
+     * @param  {Array}  [tags=[]] Additional tags to append to this log.
+     * @return {Promise<LogMessage>} A new Promise that resolves with the LogMessage object after the promise completes.
+     * 
+     * @example 
+     * let promise = new Promise(resolve => resolve('this is a test'));
+     * 
+     * log.result(promise);
+     * // => { "msg": "this is a test" ... }
+     */
+    result(promise, meta = {}, tags = []) {
+        if(!promise || typeof promise.then !== 'function') {
+            throw new Error('A promise must be provided as the first argument');
+        }
+        
+        let wrapper = new Promise((resolve) => {
+            promise
+                .then(value => resolve(this.log('info', value, meta, tags)))
+                .catch(err => resolve(this.log('error', err, meta, tags)));
+        });
+        
+        return wrapper;
+    }
+}
+
+module.exports = LambdaLog;
+
+
+/***/ }),
+
+/***/ "../../lambda-log/lib/LogMessage.js":
+/*!*****************************************************************************************!*\
+  !*** /Users/josoroma/Sites/sls/sls-challenge/node_modules/lambda-log/lib/LogMessage.js ***!
+  \*****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+const stringify = __webpack_require__(/*! fast-safe-stringify */ "../../fast-safe-stringify/index.js");
+
+/**
+ * The LogMessage class is a private/internal class that is used for generating log messages. All log methods return an instance of LogMessage allowing for a chainable api. 
+ * Having a seperate class and instance for each log allows chaining and the ability to further customize this module in the future without major breaking changes. The documentation 
+ * provided here is what is available to you for each log message.
+ */
+class LogMessage {
+    /**
+     * Constructor for LogMessage
+     * @param {Object} log  Object containing all the information for a log.
+     * @param {String} log.level The log level.
+     * @param {*} log.msg The message for the log.
+     * @param {Object} [log.meta] Metadata attached to the log.
+     * @param {String[]} [log.tags] Additional tags to attach to the log.
+     * @param {Object} opts Configuration options from LambdaLog.
+     */
+    constructor({ level, msg, meta, tags }, opts) {
+        /**
+         * String log level of the message.
+         * @type {String}
+         * @example 
+         * log.error('This is an error').level;
+         * //=> "error"
+         */
+        this.level = level;
+        /**
+         * The fully compiled metadata object for the log. Includes global and dynamic metadata.
+         * @type {Object}
+         * @example 
+         * log.info('This is some info', { hello: 'world' }).meta;
+         * //=> { hello: 'world', ... }
+         */
+        this.meta = meta;
+        /**
+         * Array of tags attached to this log. Includes global tags.
+         * @type {String[]}
+         * @example 
+         * log.info('This is some info', {}, ['custom-tag']).tags;
+         * //=> ["custom-tag", ...]
+         */
+        this.tags = ['log', level].concat(opts.tags, tags);
+        
+        let errorMeta = {};
+        
+        // If `msg` is an Error-like object, use the message and add the `stack` to `meta`
+        if(LogMessage.isError(msg)) {
+            this._error = msg;
+            errorMeta.stack = msg.stack;
+            msg = msg.message;
+        }
+        
+        /**
+         * The message for the log. If an Error was provided, it will be the message of the error.
+         * @type {String}
+         * @example 
+         * log.error('This is an error').msg;
+         * //=> "This is an error"
+         */
+        this.msg = msg;
+        
+        if(meta && (typeof meta !== 'object' || Array.isArray(meta))) {
+            meta = { meta };
+        }
+        
+        this.meta = Object.assign({}, meta || {}, opts.meta, errorMeta);
+        
+        if(opts.dynamicMeta && typeof opts.dynamicMeta === 'function') {
+            let dynMeta = opts.dynamicMeta(this, opts);
+            
+            if(typeof dynMeta === 'object') {
+                this.meta = Object.assign(this.meta, dynMeta);
+            }
+        }
+        
+        this._replacer = typeof opts.replacer === 'function'? opts.replacer : null;
+    }
+    
+    /**
+     * The full log object. This is the object used in logMessage.toJSON() and when the log is written to the console. 
+     * See [Log Output](#log-output) for more information.
+     * @returns {Object} The full log object.
+     * @example 
+     * log.info('This is some info').value;
+     * //=> { _logLevel: 'info', msg: 'This is some info', ... }
+     */
+    get value() {
+        return Object.assign({ _logLevel: this.level, msg: this.msg }, this.meta, { _tags: this.tags });
+    }
+    
+    /**
+     * Alias of `logMessage.value`.
+     * @returns {Object} The full log object.
+     */
+    get log() {
+        return this.value;
+    }
+    
+    /**
+     * Throws the log. If an error was not provided, one will be generated for you and thrown. This is useful in cases where you need to log an 
+     * error, but also throw it.
+     * @throws {Error} The provided error, or a newly generated error.
+     * @example 
+     * log.error('This is an error').throw;
+     * 
+     * //Shorthand for:
+     * let logMsg = log.error('This is an error');
+     * let error = new Error(logMsg.msg);
+     * error.log = logMsg;
+     * 
+     * throw error;
+     */
+    get throw() {
+        let err = this._error || new Error(this.msg);
+        err.log = this;
+        
+        throw err;
+    }
+    
+    /**
+     * Returns the compiled log object converted into JSON. This method utilizes `options.replacer` for the replacer function. It also uses 
+     * [json-stringify-safe](https://www.npmjs.com/package/json-stringify-safe) to prevent circular reference issues.
+     * @param {Boolean} [format=false] Enable pretty-printing of the JSON object (4 space indentation).
+     * @returns {String}  Log object stringified as JSON.
+     * @example 
+     * log.error('This is an error').toJSON(true);
+     * //=> {
+     * //      "_logLevel": "error",
+     * //      "msg": "This is an error",
+     * //      ...
+     * //   }
+     */
+    toJSON(format) {
+        return stringify(this.value, this._replacer, format? 4 : 0);
+    }
+    
+    /**
+     * Checks if value is an Error or Error-like object
+     * @private
+     * @param  {*}       val Value to test
+     * @return {Boolean}     Whether the value is an Error or Error-like object
+     */
+    static isError(val) {
+        return !!val && typeof val === 'object' && (
+            val instanceof Error || (
+                val.hasOwnProperty('message') && val.hasOwnProperty('stack')
+            )
+        );
+    }
+}
+
+module.exports = LogMessage;
+
 
 /***/ }),
 
@@ -161,7 +961,7 @@ __webpack_require__(/*! ./ */ "../../source-map-support/source-map-support.js").
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-var SourceMapConsumer = __webpack_require__(/*! source-map */ "../../source-map/source-map.js").SourceMapConsumer;
+/* WEBPACK VAR INJECTION */(function(module) {var SourceMapConsumer = __webpack_require__(/*! source-map */ "../../source-map/source-map.js").SourceMapConsumer;
 var path = __webpack_require__(/*! path */ "path");
 
 var fs;
@@ -173,6 +973,18 @@ try {
   }
 } catch (err) {
   /* nop */
+}
+
+var bufferFrom = __webpack_require__(/*! buffer-from */ "../../buffer-from/index.js");
+
+/**
+ * Requires a module which is protected against bundler minification.
+ *
+ * @param {NodeModule} mod
+ * @param {string} request
+ */
+function dynamicRequire(mod, request) {
+  return mod.require(request);
 }
 
 // Only install once if called multiple times
@@ -227,39 +1039,52 @@ var retrieveFile = handlerExec(retrieveFileHandlers);
 retrieveFileHandlers.push(function(path) {
   // Trim the path to make sure there is no extra whitespace.
   path = path.trim();
+  if (/^file:/.test(path)) {
+    // existsSync/readFileSync can't handle file protocol, but once stripped, it works
+    path = path.replace(/file:\/\/\/(\w:)?/, function(protocol, drive) {
+      return drive ?
+        '' : // file:///C:/dir/file -> C:/dir/file
+        '/'; // file:///root-dir/file -> /root-dir/file
+    });
+  }
   if (path in fileContentsCache) {
     return fileContentsCache[path];
   }
 
-  var contents = null;
-  if (!fs) {
-    // Use SJAX if we are in the browser
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', path, false);
-    xhr.send(null);
-    var contents = null
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      contents = xhr.responseText
-    }
-  } else if (fs.existsSync(path)) {
-    // Otherwise, use the filesystem
-    try {
+  var contents = '';
+  try {
+    if (!fs) {
+      // Use SJAX if we are in the browser
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', path, /** async */ false);
+      xhr.send(null);
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        contents = xhr.responseText;
+      }
+    } else if (fs.existsSync(path)) {
+      // Otherwise, use the filesystem
       contents = fs.readFileSync(path, 'utf8');
-    } catch (er) {
-      contents = '';
     }
+  } catch (er) {
+    /* ignore any errors */
   }
 
   return fileContentsCache[path] = contents;
 });
 
 // Support URLs relative to a directory, but be careful about a protocol prefix
-// in case we are in the browser (i.e. directories may start with "http://")
+// in case we are in the browser (i.e. directories may start with "http://" or "file:///")
 function supportRelativeURL(file, url) {
   if (!file) return url;
   var dir = path.dirname(file);
   var match = /^\w+:\/\/[^\/]*/.exec(dir);
   var protocol = match ? match[0] : '';
+  var startPath = dir.slice(protocol.length);
+  if (protocol && /^\/\w\:/.test(startPath)) {
+    // handle file:///C:/ paths
+    protocol += '/';
+    return protocol + path.resolve(dir.slice(protocol.length), url).replace(/\\/g, '/');
+  }
   return protocol + path.resolve(dir.slice(protocol.length), url);
 }
 
@@ -285,7 +1110,7 @@ function retrieveSourceMapURL(source) {
 
   // Get the URL of the source map
   fileData = retrieveFile(source);
-  var re = /(?:\/\/[@#][ \t]+sourceMappingURL=([^\s'"]+?)[ \t]*$)|(?:\/\*[@#][ \t]+sourceMappingURL=([^\*]+?)[ \t]*(?:\*\/)[ \t]*$)/mg;
+  var re = /(?:\/\/[@#][\s]*sourceMappingURL=([^\s'"]+)[\s]*$)|(?:\/\*[@#][\s]*sourceMappingURL=([^\s*'"]+)[\s]*(?:\*\/)[\s]*$)/mg;
   // Keep executing the search to find the *last* sourceMappingURL to avoid
   // picking up sourceMappingURLs from comments, strings, etc.
   var lastMatch, match;
@@ -309,7 +1134,7 @@ retrieveMapHandlers.push(function(source) {
   if (reSourceMap.test(sourceMappingURL)) {
     // Support source map URL as a data url
     var rawData = sourceMappingURL.slice(sourceMappingURL.indexOf(',') + 1);
-    sourceMapData = new Buffer(rawData, "base64").toString();
+    sourceMapData = bufferFrom(rawData, "base64").toString();
     sourceMappingURL = source;
   } else {
     // Support source map URLs relative to the source URL
@@ -358,7 +1183,7 @@ function mapSourcePosition(position) {
   }
 
   // Resolve the source URL relative to the URL of the source map
-  if (sourceMap && sourceMap.map) {
+  if (sourceMap && sourceMap.map && typeof sourceMap.map.originalPositionFor === 'function') {
     var originalPosition = sourceMap.map.originalPositionFor(position);
 
     // Only return the original position if a matching line was found. If no
@@ -483,8 +1308,13 @@ function cloneCallSite(frame) {
   return object;
 }
 
-function wrapCallSite(frame) {
+function wrapCallSite(frame, state) {
+  // provides interface backward compatibility
+  if (state === undefined) {
+    state = { nextPosition: null, curPosition: null }
+  }
   if(frame.isNative()) {
+    state.curPosition = null;
     return frame;
   }
 
@@ -498,7 +1328,11 @@ function wrapCallSite(frame) {
 
     // Fix position in Node where some (internal) code is prepended.
     // See https://github.com/evanw/node-source-map-support/issues/36
-    var headerLength = 62;
+    // Header removed in node at ^10.16 || >=11.11.0
+    // v11 is not an LTS candidate, we can just test the one version with it.
+    // Test node versions for: 10.16-19, 10.20+, 12-19, 20-99, 100+, or 11.11
+    var noHeader = /^v(10\.1[6-9]|10\.[2-9][0-9]|10\.[0-9]{3,}|1[2-9]\d*|[2-9]\d|\d{3,}|11\.11)/;
+    var headerLength = noHeader.test(process.version) ? 0 : 62;
     if (line === 1 && column > headerLength && !isInBrowser() && !frame.isEval()) {
       column -= headerLength;
     }
@@ -508,7 +1342,15 @@ function wrapCallSite(frame) {
       line: line,
       column: column
     });
+    state.curPosition = position;
     frame = cloneCallSite(frame);
+    var originalFunctionName = frame.getFunctionName;
+    frame.getFunctionName = function() {
+      if (state.nextPosition == null) {
+        return originalFunctionName();
+      }
+      return state.nextPosition.name || originalFunctionName();
+    };
     frame.getFileName = function() { return position.source; };
     frame.getLineNumber = function() { return position.line; };
     frame.getColumnNumber = function() { return position.column + 1; };
@@ -530,16 +1372,25 @@ function wrapCallSite(frame) {
 }
 
 // This function is part of the V8 stack trace API, for more info see:
-// http://code.google.com/p/v8/wiki/JavaScriptStackTraceApi
+// https://v8.dev/docs/stack-trace-api
 function prepareStackTrace(error, stack) {
   if (emptyCacheBetweenOperations) {
     fileContentsCache = {};
     sourceMapCache = {};
   }
 
-  return error + stack.map(function(frame) {
-    return '\n    at ' + wrapCallSite(frame);
-  }).join('');
+  var name = error.name || 'Error';
+  var message = error.message || '';
+  var errorString = name + ": " + message;
+
+  var state = { nextPosition: null, curPosition: null };
+  var processedStack = [];
+  for (var i = stack.length - 1; i >= 0; i--) {
+    processedStack.push('\n    at ' + wrapCallSite(stack[i], state));
+    state.nextPosition = state.curPosition;
+  }
+  state.curPosition = state.nextPosition = null;
+  return errorString + processedStack.reverse().join('');
 }
 
 // Generate position and snippet of original source with pointer
@@ -577,6 +1428,11 @@ function getErrorSource(error) {
 function printErrorAndExit (error) {
   var source = getErrorSource(error);
 
+  // Ensure error is printed synchronously and not truncated
+  if (process.stderr._handle && process.stderr._handle.setBlocking) {
+    process.stderr._handle.setBlocking(true);
+  }
+
   if (source) {
     console.error();
     console.error(source);
@@ -602,6 +1458,9 @@ function shimEmitUncaughtException () {
     return origEmit.apply(this, arguments);
   };
 }
+
+var originalRetrieveFileHandlers = retrieveFileHandlers.slice(0);
+var originalRetrieveMapHandlers = retrieveMapHandlers.slice(0);
 
 exports.wrapCallSite = wrapCallSite;
 exports.getErrorSource = getErrorSource;
@@ -640,12 +1499,8 @@ exports.install = function(options) {
 
   // Support runtime transpilers that include inline source maps
   if (options.hookRequire && !isInBrowser()) {
-    var Module;
-    try {
-      Module = __webpack_require__(/*! module */ "module");
-    } catch (err) {
-      // NOP: Loading in catch block to convert webpack error to warning.
-    }
+    // Use dynamicRequire to avoid including in browser bundles
+    var Module = dynamicRequire(module, 'module');
     var $compile = Module.prototype._compile;
 
     if (!$compile.__sourceMapSupport) {
@@ -675,6 +1530,17 @@ exports.install = function(options) {
     var installHandler = 'handleUncaughtExceptions' in options ?
       options.handleUncaughtExceptions : true;
 
+    // Do not override 'uncaughtException' with our own handler in Node.js
+    // Worker threads. Workers pass the error to the main thread as an event,
+    // rather than printing something to stderr and exiting.
+    try {
+      // We need to use `dynamicRequire` because `require` on it's own will be optimized by WebPack/Browserify.
+      var worker_threads = dynamicRequire(module, 'worker_threads');
+      if (worker_threads.isMainThread === false) {
+        installHandler = false;
+      }
+    } catch(e) {}
+
     // Provide the option to not install the uncaught exception handler. This is
     // to support other uncaught exception handlers (in test frameworks, for
     // example). If this handler is not installed and there are no other uncaught
@@ -689,6 +1555,18 @@ exports.install = function(options) {
   }
 };
 
+exports.resetRetrieveHandlers = function() {
+  retrieveFileHandlers.length = 0;
+  retrieveMapHandlers.length = 0;
+
+  retrieveFileHandlers = originalRetrieveFileHandlers.slice(0);
+  retrieveMapHandlers = originalRetrieveMapHandlers.slice(0);
+
+  retrieveSourceMap = handlerExec(retrieveMapHandlers);
+  retrieveFile = handlerExec(retrieveFileHandlers);
+}
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/module.js */ "../../webpack/buildin/module.js")(module)))
 
 /***/ }),
 
@@ -1410,19 +2288,19 @@ var ArraySet = __webpack_require__(/*! ./array-set */ "../../source-map/lib/arra
 var base64VLQ = __webpack_require__(/*! ./base64-vlq */ "../../source-map/lib/base64-vlq.js");
 var quickSort = __webpack_require__(/*! ./quick-sort */ "../../source-map/lib/quick-sort.js").quickSort;
 
-function SourceMapConsumer(aSourceMap) {
+function SourceMapConsumer(aSourceMap, aSourceMapURL) {
   var sourceMap = aSourceMap;
   if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
+    sourceMap = util.parseSourceMapInput(aSourceMap);
   }
 
   return sourceMap.sections != null
-    ? new IndexedSourceMapConsumer(sourceMap)
-    : new BasicSourceMapConsumer(sourceMap);
+    ? new IndexedSourceMapConsumer(sourceMap, aSourceMapURL)
+    : new BasicSourceMapConsumer(sourceMap, aSourceMapURL);
 }
 
-SourceMapConsumer.fromSourceMap = function(aSourceMap) {
-  return BasicSourceMapConsumer.fromSourceMap(aSourceMap);
+SourceMapConsumer.fromSourceMap = function(aSourceMap, aSourceMapURL) {
+  return BasicSourceMapConsumer.fromSourceMap(aSourceMap, aSourceMapURL);
 }
 
 /**
@@ -1462,6 +2340,8 @@ SourceMapConsumer.prototype._version = 3;
 
 SourceMapConsumer.prototype.__generatedMappings = null;
 Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
+  configurable: true,
+  enumerable: true,
   get: function () {
     if (!this.__generatedMappings) {
       this._parseMappings(this._mappings, this.sourceRoot);
@@ -1473,6 +2353,8 @@ Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
 
 SourceMapConsumer.prototype.__originalMappings = null;
 Object.defineProperty(SourceMapConsumer.prototype, '_originalMappings', {
+  configurable: true,
+  enumerable: true,
   get: function () {
     if (!this.__originalMappings) {
       this._parseMappings(this._mappings, this.sourceRoot);
@@ -1540,9 +2422,7 @@ SourceMapConsumer.prototype.eachMapping =
     var sourceRoot = this.sourceRoot;
     mappings.map(function (mapping) {
       var source = mapping.source === null ? null : this._sources.at(mapping.source);
-      if (source != null && sourceRoot != null) {
-        source = util.join(sourceRoot, source);
-      }
+      source = util.computeSourceURL(sourceRoot, source, this._sourceMapURL);
       return {
         source: source,
         generatedLine: mapping.generatedLine,
@@ -1565,13 +2445,16 @@ SourceMapConsumer.prototype.eachMapping =
  * The only argument is an object with the following properties:
  *
  *   - source: The filename of the original source.
- *   - line: The line number in the original source.
+ *   - line: The line number in the original source.  The line number is 1-based.
  *   - column: Optional. the column number in the original source.
+ *    The column number is 0-based.
  *
  * and an array of objects is returned, each with the following properties:
  *
- *   - line: The line number in the generated source, or null.
+ *   - line: The line number in the generated source, or null.  The
+ *    line number is 1-based.
  *   - column: The column number in the generated source, or null.
+ *    The column number is 0-based.
  */
 SourceMapConsumer.prototype.allGeneratedPositionsFor =
   function SourceMapConsumer_allGeneratedPositionsFor(aArgs) {
@@ -1587,13 +2470,10 @@ SourceMapConsumer.prototype.allGeneratedPositionsFor =
       originalColumn: util.getArg(aArgs, 'column', 0)
     };
 
-    if (this.sourceRoot != null) {
-      needle.source = util.relative(this.sourceRoot, needle.source);
-    }
-    if (!this._sources.has(needle.source)) {
+    needle.source = this._findSourceIndex(needle.source);
+    if (needle.source < 0) {
       return [];
     }
-    needle.source = this._sources.indexOf(needle.source);
 
     var mappings = [];
 
@@ -1653,7 +2533,7 @@ exports.SourceMapConsumer = SourceMapConsumer;
  * query for information about the original file positions by giving it a file
  * position in the generated source.
  *
- * The only parameter is the raw source map (either as a JSON string, or
+ * The first parameter is the raw source map (either as a JSON string, or
  * already parsed to an object). According to the spec, source maps have the
  * following attributes:
  *
@@ -1676,12 +2556,16 @@ exports.SourceMapConsumer = SourceMapConsumer;
  *       mappings: "AA,AB;;ABCDE;"
  *     }
  *
+ * The second parameter, if given, is a string whose value is the URL
+ * at which the source map was found.  This URL is used to compute the
+ * sources array.
+ *
  * [0]: https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit?pli=1#
  */
-function BasicSourceMapConsumer(aSourceMap) {
+function BasicSourceMapConsumer(aSourceMap, aSourceMapURL) {
   var sourceMap = aSourceMap;
   if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
+    sourceMap = util.parseSourceMapInput(aSourceMap);
   }
 
   var version = util.getArg(sourceMap, 'version');
@@ -1698,6 +2582,10 @@ function BasicSourceMapConsumer(aSourceMap) {
   // string rather than a number, so we use loose equality checking here.
   if (version != this._version) {
     throw new Error('Unsupported version: ' + version);
+  }
+
+  if (sourceRoot) {
+    sourceRoot = util.normalize(sourceRoot);
   }
 
   sources = sources
@@ -1723,9 +2611,14 @@ function BasicSourceMapConsumer(aSourceMap) {
   this._names = ArraySet.fromArray(names.map(String), true);
   this._sources = ArraySet.fromArray(sources, true);
 
+  this._absoluteSources = this._sources.toArray().map(function (s) {
+    return util.computeSourceURL(sourceRoot, s, aSourceMapURL);
+  });
+
   this.sourceRoot = sourceRoot;
   this.sourcesContent = sourcesContent;
   this._mappings = mappings;
+  this._sourceMapURL = aSourceMapURL;
   this.file = file;
 }
 
@@ -1733,14 +2626,42 @@ BasicSourceMapConsumer.prototype = Object.create(SourceMapConsumer.prototype);
 BasicSourceMapConsumer.prototype.consumer = SourceMapConsumer;
 
 /**
+ * Utility function to find the index of a source.  Returns -1 if not
+ * found.
+ */
+BasicSourceMapConsumer.prototype._findSourceIndex = function(aSource) {
+  var relativeSource = aSource;
+  if (this.sourceRoot != null) {
+    relativeSource = util.relative(this.sourceRoot, relativeSource);
+  }
+
+  if (this._sources.has(relativeSource)) {
+    return this._sources.indexOf(relativeSource);
+  }
+
+  // Maybe aSource is an absolute URL as returned by |sources|.  In
+  // this case we can't simply undo the transform.
+  var i;
+  for (i = 0; i < this._absoluteSources.length; ++i) {
+    if (this._absoluteSources[i] == aSource) {
+      return i;
+    }
+  }
+
+  return -1;
+};
+
+/**
  * Create a BasicSourceMapConsumer from a SourceMapGenerator.
  *
  * @param SourceMapGenerator aSourceMap
  *        The source map that will be consumed.
+ * @param String aSourceMapURL
+ *        The URL at which the source map can be found (optional)
  * @returns BasicSourceMapConsumer
  */
 BasicSourceMapConsumer.fromSourceMap =
-  function SourceMapConsumer_fromSourceMap(aSourceMap) {
+  function SourceMapConsumer_fromSourceMap(aSourceMap, aSourceMapURL) {
     var smc = Object.create(BasicSourceMapConsumer.prototype);
 
     var names = smc._names = ArraySet.fromArray(aSourceMap._names.toArray(), true);
@@ -1749,6 +2670,10 @@ BasicSourceMapConsumer.fromSourceMap =
     smc.sourcesContent = aSourceMap._generateSourcesContent(smc._sources.toArray(),
                                                             smc.sourceRoot);
     smc.file = aSourceMap._file;
+    smc._sourceMapURL = aSourceMapURL;
+    smc._absoluteSources = smc._sources.toArray().map(function (s) {
+      return util.computeSourceURL(smc.sourceRoot, s, aSourceMapURL);
+    });
 
     // Because we are modifying the entries (by converting string sources and
     // names to indices into the sources and names ArraySets), we have to make
@@ -1795,9 +2720,7 @@ BasicSourceMapConsumer.prototype._version = 3;
  */
 Object.defineProperty(BasicSourceMapConsumer.prototype, 'sources', {
   get: function () {
-    return this._sources.toArray().map(function (s) {
-      return this.sourceRoot != null ? util.join(this.sourceRoot, s) : s;
-    }, this);
+    return this._absoluteSources.slice();
   }
 });
 
@@ -1978,8 +2901,10 @@ BasicSourceMapConsumer.prototype.computeColumnSpans =
  * source's line and column positions provided. The only argument is an object
  * with the following properties:
  *
- *   - line: The line number in the generated source.
- *   - column: The column number in the generated source.
+ *   - line: The line number in the generated source.  The line number
+ *     is 1-based.
+ *   - column: The column number in the generated source.  The column
+ *     number is 0-based.
  *   - bias: Either 'SourceMapConsumer.GREATEST_LOWER_BOUND' or
  *     'SourceMapConsumer.LEAST_UPPER_BOUND'. Specifies whether to return the
  *     closest element that is smaller than or greater than the one we are
@@ -1989,8 +2914,10 @@ BasicSourceMapConsumer.prototype.computeColumnSpans =
  * and an object is returned with the following properties:
  *
  *   - source: The original source file, or null.
- *   - line: The line number in the original source, or null.
- *   - column: The column number in the original source, or null.
+ *   - line: The line number in the original source, or null.  The
+ *     line number is 1-based.
+ *   - column: The column number in the original source, or null.  The
+ *     column number is 0-based.
  *   - name: The original identifier, or null.
  */
 BasicSourceMapConsumer.prototype.originalPositionFor =
@@ -2016,9 +2943,7 @@ BasicSourceMapConsumer.prototype.originalPositionFor =
         var source = util.getArg(mapping, 'source', null);
         if (source !== null) {
           source = this._sources.at(source);
-          if (this.sourceRoot != null) {
-            source = util.join(this.sourceRoot, source);
-          }
+          source = util.computeSourceURL(this.sourceRoot, source, this._sourceMapURL);
         }
         var name = util.getArg(mapping, 'name', null);
         if (name !== null) {
@@ -2065,12 +2990,14 @@ BasicSourceMapConsumer.prototype.sourceContentFor =
       return null;
     }
 
-    if (this.sourceRoot != null) {
-      aSource = util.relative(this.sourceRoot, aSource);
+    var index = this._findSourceIndex(aSource);
+    if (index >= 0) {
+      return this.sourcesContent[index];
     }
 
-    if (this._sources.has(aSource)) {
-      return this.sourcesContent[this._sources.indexOf(aSource)];
+    var relativeSource = aSource;
+    if (this.sourceRoot != null) {
+      relativeSource = util.relative(this.sourceRoot, relativeSource);
     }
 
     var url;
@@ -2080,15 +3007,15 @@ BasicSourceMapConsumer.prototype.sourceContentFor =
       // many users. We can help them out when they expect file:// URIs to
       // behave like it would if they were running a local HTTP server. See
       // https://bugzilla.mozilla.org/show_bug.cgi?id=885597.
-      var fileUriAbsPath = aSource.replace(/^file:\/\//, "");
+      var fileUriAbsPath = relativeSource.replace(/^file:\/\//, "");
       if (url.scheme == "file"
           && this._sources.has(fileUriAbsPath)) {
         return this.sourcesContent[this._sources.indexOf(fileUriAbsPath)]
       }
 
       if ((!url.path || url.path == "/")
-          && this._sources.has("/" + aSource)) {
-        return this.sourcesContent[this._sources.indexOf("/" + aSource)];
+          && this._sources.has("/" + relativeSource)) {
+        return this.sourcesContent[this._sources.indexOf("/" + relativeSource)];
       }
     }
 
@@ -2100,7 +3027,7 @@ BasicSourceMapConsumer.prototype.sourceContentFor =
       return null;
     }
     else {
-      throw new Error('"' + aSource + '" is not in the SourceMap.');
+      throw new Error('"' + relativeSource + '" is not in the SourceMap.');
     }
   };
 
@@ -2110,8 +3037,10 @@ BasicSourceMapConsumer.prototype.sourceContentFor =
  * the following properties:
  *
  *   - source: The filename of the original source.
- *   - line: The line number in the original source.
- *   - column: The column number in the original source.
+ *   - line: The line number in the original source.  The line number
+ *     is 1-based.
+ *   - column: The column number in the original source.  The column
+ *     number is 0-based.
  *   - bias: Either 'SourceMapConsumer.GREATEST_LOWER_BOUND' or
  *     'SourceMapConsumer.LEAST_UPPER_BOUND'. Specifies whether to return the
  *     closest element that is smaller than or greater than the one we are
@@ -2120,23 +3049,22 @@ BasicSourceMapConsumer.prototype.sourceContentFor =
  *
  * and an object is returned with the following properties:
  *
- *   - line: The line number in the generated source, or null.
+ *   - line: The line number in the generated source, or null.  The
+ *     line number is 1-based.
  *   - column: The column number in the generated source, or null.
+ *     The column number is 0-based.
  */
 BasicSourceMapConsumer.prototype.generatedPositionFor =
   function SourceMapConsumer_generatedPositionFor(aArgs) {
     var source = util.getArg(aArgs, 'source');
-    if (this.sourceRoot != null) {
-      source = util.relative(this.sourceRoot, source);
-    }
-    if (!this._sources.has(source)) {
+    source = this._findSourceIndex(source);
+    if (source < 0) {
       return {
         line: null,
         column: null,
         lastColumn: null
       };
     }
-    source = this._sources.indexOf(source);
 
     var needle = {
       source: source,
@@ -2180,7 +3108,7 @@ exports.BasicSourceMapConsumer = BasicSourceMapConsumer;
  * that it takes "indexed" source maps (i.e. ones with a "sections" field) as
  * input.
  *
- * The only parameter is a raw source map (either as a JSON string, or already
+ * The first parameter is a raw source map (either as a JSON string, or already
  * parsed to an object). According to the spec for indexed source maps, they
  * have the following attributes:
  *
@@ -2217,12 +3145,16 @@ exports.BasicSourceMapConsumer = BasicSourceMapConsumer;
  *    }],
  *  }
  *
+ * The second parameter, if given, is a string whose value is the URL
+ * at which the source map was found.  This URL is used to compute the
+ * sources array.
+ *
  * [0]: https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.535es3xeprgt
  */
-function IndexedSourceMapConsumer(aSourceMap) {
+function IndexedSourceMapConsumer(aSourceMap, aSourceMapURL) {
   var sourceMap = aSourceMap;
   if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
+    sourceMap = util.parseSourceMapInput(aSourceMap);
   }
 
   var version = util.getArg(sourceMap, 'version');
@@ -2262,7 +3194,7 @@ function IndexedSourceMapConsumer(aSourceMap) {
         generatedLine: offsetLine + 1,
         generatedColumn: offsetColumn + 1
       },
-      consumer: new SourceMapConsumer(util.getArg(s, 'map'))
+      consumer: new SourceMapConsumer(util.getArg(s, 'map'), aSourceMapURL)
     }
   });
 }
@@ -2295,14 +3227,18 @@ Object.defineProperty(IndexedSourceMapConsumer.prototype, 'sources', {
  * source's line and column positions provided. The only argument is an object
  * with the following properties:
  *
- *   - line: The line number in the generated source.
- *   - column: The column number in the generated source.
+ *   - line: The line number in the generated source.  The line number
+ *     is 1-based.
+ *   - column: The column number in the generated source.  The column
+ *     number is 0-based.
  *
  * and an object is returned with the following properties:
  *
  *   - source: The original source file, or null.
- *   - line: The line number in the original source, or null.
- *   - column: The column number in the original source, or null.
+ *   - line: The line number in the original source, or null.  The
+ *     line number is 1-based.
+ *   - column: The column number in the original source, or null.  The
+ *     column number is 0-based.
  *   - name: The original identifier, or null.
  */
 IndexedSourceMapConsumer.prototype.originalPositionFor =
@@ -2386,13 +3322,17 @@ IndexedSourceMapConsumer.prototype.sourceContentFor =
  * the following properties:
  *
  *   - source: The filename of the original source.
- *   - line: The line number in the original source.
- *   - column: The column number in the original source.
+ *   - line: The line number in the original source.  The line number
+ *     is 1-based.
+ *   - column: The column number in the original source.  The column
+ *     number is 0-based.
  *
  * and an object is returned with the following properties:
  *
- *   - line: The line number in the generated source, or null.
+ *   - line: The line number in the generated source, or null.  The
+ *     line number is 1-based. 
  *   - column: The column number in the generated source, or null.
+ *     The column number is 0-based.
  */
 IndexedSourceMapConsumer.prototype.generatedPositionFor =
   function IndexedSourceMapConsumer_generatedPositionFor(aArgs) {
@@ -2401,7 +3341,7 @@ IndexedSourceMapConsumer.prototype.generatedPositionFor =
 
       // Only consider this section if the requested source is in the list of
       // sources of the consumer.
-      if (section.consumer.sources.indexOf(util.getArg(aArgs, 'source')) === -1) {
+      if (section.consumer._findSourceIndex(util.getArg(aArgs, 'source')) === -1) {
         continue;
       }
       var generatedPosition = section.consumer.generatedPositionFor(aArgs);
@@ -2440,15 +3380,16 @@ IndexedSourceMapConsumer.prototype._parseMappings =
         var mapping = sectionMappings[j];
 
         var source = section.consumer._sources.at(mapping.source);
-        if (section.consumer.sourceRoot !== null) {
-          source = util.join(section.consumer.sourceRoot, source);
-        }
+        source = util.computeSourceURL(section.consumer.sourceRoot, source, this._sourceMapURL);
         this._sources.add(source);
         source = this._sources.indexOf(source);
 
-        var name = section.consumer._names.at(mapping.name);
-        this._names.add(name);
-        name = this._names.indexOf(name);
+        var name = null;
+        if (mapping.name) {
+          name = section.consumer._names.at(mapping.name);
+          this._names.add(name);
+          name = this._names.indexOf(name);
+        }
 
         // The mappings coming from the consumer for the section have
         // generated positions relative to the start of the section, so we
@@ -2564,6 +3505,15 @@ SourceMapGenerator.fromSourceMap =
       generator.addMapping(newMapping);
     });
     aSourceMapConsumer.sources.forEach(function (sourceFile) {
+      var sourceRelative = sourceFile;
+      if (sourceRoot !== null) {
+        sourceRelative = util.relative(sourceRoot, sourceFile);
+      }
+
+      if (!generator._sources.has(sourceRelative)) {
+        generator._sources.add(sourceRelative);
+      }
+
       var content = aSourceMapConsumer.sourceContentFor(sourceFile);
       if (content != null) {
         generator.setSourceContent(sourceFile, content);
@@ -3016,7 +3966,7 @@ SourceNode.fromStringWithSourceMap =
           // There is no new line in between.
           // Associate the code between "lastGeneratedColumn" and
           // "mapping.generatedColumn" with "lastMapping"
-          var nextLine = remainingLines[remainingLinesIndex];
+          var nextLine = remainingLines[remainingLinesIndex] || '';
           var code = nextLine.substr(0, mapping.generatedColumn -
                                         lastGeneratedColumn);
           remainingLines[remainingLinesIndex] = nextLine.substr(mapping.generatedColumn -
@@ -3036,7 +3986,7 @@ SourceNode.fromStringWithSourceMap =
         lastGeneratedLine++;
       }
       if (lastGeneratedColumn < mapping.generatedColumn) {
-        var nextLine = remainingLines[remainingLinesIndex];
+        var nextLine = remainingLines[remainingLinesIndex] || '';
         node.add(nextLine.substr(0, mapping.generatedColumn));
         remainingLines[remainingLinesIndex] = nextLine.substr(mapping.generatedColumn);
         lastGeneratedColumn = mapping.generatedColumn;
@@ -3369,7 +4319,7 @@ function getArg(aArgs, aName, aDefaultValue) {
 }
 exports.getArg = getArg;
 
-var urlRegexp = /^(?:([\w+\-.]+):)?\/\/(?:(\w+:\w+)@)?([\w.]*)(?::(\d+))?(\S*)$/;
+var urlRegexp = /^(?:([\w+\-.]+):)?\/\/(?:(\w+:\w+)@)?([\w.-]*)(?::(\d+))?(.*)$/;
 var dataUrlRegexp = /^data:.+\,.+$/;
 
 function urlParse(aUrl) {
@@ -3525,7 +4475,7 @@ function join(aRoot, aPath) {
 exports.join = join;
 
 exports.isAbsolute = function (aPath) {
-  return aPath.charAt(0) === '/' || !!aPath.match(urlRegexp);
+  return aPath.charAt(0) === '/' || urlRegexp.test(aPath);
 };
 
 /**
@@ -3645,7 +4595,7 @@ function isProtoString(s) {
  * stubbed out mapping.
  */
 function compareByOriginalPositions(mappingA, mappingB, onlyCompareOriginal) {
-  var cmp = mappingA.source - mappingB.source;
+  var cmp = strcmp(mappingA.source, mappingB.source);
   if (cmp !== 0) {
     return cmp;
   }
@@ -3670,7 +4620,7 @@ function compareByOriginalPositions(mappingA, mappingB, onlyCompareOriginal) {
     return cmp;
   }
 
-  return mappingA.name - mappingB.name;
+  return strcmp(mappingA.name, mappingB.name);
 }
 exports.compareByOriginalPositions = compareByOriginalPositions;
 
@@ -3694,7 +4644,7 @@ function compareByGeneratedPositionsDeflated(mappingA, mappingB, onlyCompareGene
     return cmp;
   }
 
-  cmp = mappingA.source - mappingB.source;
+  cmp = strcmp(mappingA.source, mappingB.source);
   if (cmp !== 0) {
     return cmp;
   }
@@ -3709,13 +4659,21 @@ function compareByGeneratedPositionsDeflated(mappingA, mappingB, onlyCompareGene
     return cmp;
   }
 
-  return mappingA.name - mappingB.name;
+  return strcmp(mappingA.name, mappingB.name);
 }
 exports.compareByGeneratedPositionsDeflated = compareByGeneratedPositionsDeflated;
 
 function strcmp(aStr1, aStr2) {
   if (aStr1 === aStr2) {
     return 0;
+  }
+
+  if (aStr1 === null) {
+    return 1; // aStr2 !== null
+  }
+
+  if (aStr2 === null) {
+    return -1; // aStr1 !== null
   }
 
   if (aStr1 > aStr2) {
@@ -3759,6 +4717,69 @@ function compareByGeneratedPositionsInflated(mappingA, mappingB) {
 }
 exports.compareByGeneratedPositionsInflated = compareByGeneratedPositionsInflated;
 
+/**
+ * Strip any JSON XSSI avoidance prefix from the string (as documented
+ * in the source maps specification), and then parse the string as
+ * JSON.
+ */
+function parseSourceMapInput(str) {
+  return JSON.parse(str.replace(/^\)]}'[^\n]*\n/, ''));
+}
+exports.parseSourceMapInput = parseSourceMapInput;
+
+/**
+ * Compute the URL of a source given the the source root, the source's
+ * URL, and the source map's URL.
+ */
+function computeSourceURL(sourceRoot, sourceURL, sourceMapURL) {
+  sourceURL = sourceURL || '';
+
+  if (sourceRoot) {
+    // This follows what Chrome does.
+    if (sourceRoot[sourceRoot.length - 1] !== '/' && sourceURL[0] !== '/') {
+      sourceRoot += '/';
+    }
+    // The spec says:
+    //   Line 4: An optional source root, useful for relocating source
+    //   files on a server or removing repeated values in the
+    //   “sources” entry.  This value is prepended to the individual
+    //   entries in the “source” field.
+    sourceURL = sourceRoot + sourceURL;
+  }
+
+  // Historically, SourceMapConsumer did not take the sourceMapURL as
+  // a parameter.  This mode is still somewhat supported, which is why
+  // this code block is conditional.  However, it's preferable to pass
+  // the source map URL to SourceMapConsumer, so that this function
+  // can implement the source URL resolution algorithm as outlined in
+  // the spec.  This block is basically the equivalent of:
+  //    new URL(sourceURL, sourceMapURL).toString()
+  // ... except it avoids using URL, which wasn't available in the
+  // older releases of node still supported by this library.
+  //
+  // The spec says:
+  //   If the sources are not absolute URLs after prepending of the
+  //   “sourceRoot”, the sources are resolved relative to the
+  //   SourceMap (like resolving script src in a html document).
+  if (sourceMapURL) {
+    var parsed = urlParse(sourceMapURL);
+    if (!parsed) {
+      throw new Error("sourceMapURL could not be parsed");
+    }
+    if (parsed.path) {
+      // Strip the last path component, but keep the "/".
+      var index = parsed.path.lastIndexOf('/');
+      if (index >= 0) {
+        parsed.path = parsed.path.substring(0, index + 1);
+      }
+    }
+    sourceURL = join(urlGenerate(parsed), sourceURL);
+  }
+
+  return normalize(sourceURL);
+}
+exports.computeSourceURL = computeSourceURL;
+
 
 /***/ }),
 
@@ -3781,6 +4802,50 @@ exports.SourceNode = __webpack_require__(/*! ./lib/source-node */ "../../source-
 
 /***/ }),
 
+/***/ "../../webpack/buildin/module.js":
+/*!***********************************!*\
+  !*** (webpack)/buildin/module.js ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function(module) {
+	if (!module.webpackPolyfill) {
+		module.deprecate = function() {};
+		module.paths = [];
+		// module.parent = undefined by default
+		if (!module.children) module.children = [];
+		Object.defineProperty(module, "loaded", {
+			enumerable: true,
+			get: function() {
+				return module.l;
+			}
+		});
+		Object.defineProperty(module, "id", {
+			enumerable: true,
+			get: function() {
+				return module.i;
+			}
+		});
+		module.webpackPolyfill = 1;
+	}
+	return module;
+};
+
+
+/***/ }),
+
+/***/ "events":
+/*!*************************!*\
+  !*** external "events" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("events");
+
+/***/ }),
+
 /***/ "fs":
 /*!*********************!*\
   !*** external "fs" ***!
@@ -3789,17 +4854,6 @@ exports.SourceNode = __webpack_require__(/*! ./lib/source-node */ "../../source-
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ "module":
-/*!*************************!*\
-  !*** external "module" ***!
-  \*************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("module");
 
 /***/ }),
 

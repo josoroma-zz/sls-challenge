@@ -12,9 +12,13 @@ provider:
   stage: dev
   region: us-east-1
 
+custom:
+  serverless-offline:
+    useChildProcesses: true
+
 functions:
   products-get:
-    handler: src/products/get.handler
+    handler: src/products/get.main
     events:
       - http:
           path: products/{id}

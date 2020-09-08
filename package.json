@@ -2,7 +2,10 @@
   "name": "sls-challenge",
   "description": "",
   "version": "0.1.0",
-  "dependencies": {},
+  "dependencies": {
+    "aws-sdk": "^2.747.0",
+    "lambda-log": "^2.4.0"
+  },
   "devDependencies": {
     "serverless": "^1.82.0",
     "serverless-bundle": "^3.1.0",
