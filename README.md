@@ -1,5 +1,7 @@
 # Serverless Framework Challenge
 
+![SLS](sls-challenge.gif)
+
 ## Tool dependencies
 
 ```
